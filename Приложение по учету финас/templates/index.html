@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учет финансов по Белхимплат</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f0f2f5; /* Светлый фон */
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            color: #333;
+        }
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background: #f3f3f3;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #007bff; /* Синий цвет при фокусе */
+            outline: none;
+        }
+        button {
+            background: #007bff; /* Синий цвет для кнопок */
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: #0056b3; /* Темнее синий при наведении */
+        }
+        .history {
+            margin-top: 20px;
+            text-align: left;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history h3 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f1f1f1;
+            font-weight: bold;
+        }
+        .income {
+            color: green; /* Зеленый цвет для доходов */
+            font-weight: bold;
+        }
+        .expense {
+            color: red; /* Красный цвет для расходов */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Учет финансов по Белхимплат</h2>
+        <div class="balance" id="balance">Баланс: 0 BYN</div>
+        <div class="form-group">
+            <label>Тип операции:</label>
+            <select id="type">
+                <option value="Доход">Доход</option>
+                <option value="Расход">Расход</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Сумма:</label>
+            <input type="number" id="amount" placeholder="Введите сумму">
+        </div>
+        <div class="form-group">
+            <label>Категория:</label>
+            <input type="text" id="category" placeholder="Введите категорию">
+        </div>
+        <button onclick="addTransaction()">Добавить</button>
+        <button onclick="clearData()" style="background: #dc3545; margin-top: 10px;">Очистить все данные</button>
+        
+        <div class="history">
+            <h3>История транзакций</h3>
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Категория</th>
+                        <th>Сумма (BYN)</th>
+                    </tr>
+                </thead>
+                <tbody id="history-list"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let balance = 0; // Переменная для хранения баланса
+
+        // Загружаем данные из Local Storage при загрузке страницы
+        window.onload = function() {
+            const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            transactions.forEach(transaction => {
+                addTransactionToTable(transaction.date, transaction.category, transaction.amount, transaction.type);
+                balance += transaction.type === 'Расход' ? -transaction.amount : transaction.amount;
+            });
+            updateBalance();
+        }
+
+        function addTransaction() {
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const category = document.getElementById('category').value;
+
+            if (!amount || !category) {
+                alert("Введите сумму и категорию");
+                return;
+            }
+
+            const date = new Date().toLocaleString();
+            addTransactionToTable(date, category, amount, type);
+
+            // Обновляем баланс
+            if (type === 'Расход') {
+                balance -= amount;
+            } else {
+                balance += amount;
+            }
+            updateBalance();
+
+            // Сохраняем транзакцию в Local Storage
+            saveTransaction(type, amount, category, date);
+        }
+
+        function addTransactionToTable(date, category, amount, type) {
+            const tableRow = document.createElement('tr');
+            tableRow.innerHTML = `
+                <td>${date}</td>
+                <td>${category}</td>
+                <td class="${type === 'Расход' ? 'expense' : 'income'}">${amount.toFixed(2)}</td>
+            `;
+            document.getElementById('history-list').prepend(tableRow);
+        }
+
+        function saveTransaction(type, amount, category, date) {
+            const transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            transactions.push({ type, amount, category, date });
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = `Баланс: ${balance.toFixed(2)} BYN`;
+        }
+
+        function clearData() {
+            if (confirm("Вы уверены, что хотите очистить все данные?")) {
+                localStorage.removeItem('transactions');
+                balance = 0;
+                updateBalance();
+                document.getElementById('history-list').innerHTML = ''; // Очищаем таблицу
+            }
+        }
+    </script>
+</body>
+</html>
